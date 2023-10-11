@@ -35,6 +35,7 @@ datetime
 requests_oauth2client
 os
 dotenv
+requests
 ```
 
 ### Example hosting information
