@@ -33,6 +33,8 @@ The following libraries are used within this project:
 tabulate
 datetime
 requests_oauth2client
+os
+dotenv
 ```
 
 ### Example hosting information
