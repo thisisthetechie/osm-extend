@@ -97,12 +97,12 @@ def update_required_chief_scout_badge_count(section, badges_required):
     chief_scout_badge_record = section.get_badge_record(badge_id=section.chief_scout_badge['id'], badge_version=section.chief_scout_badge['version'])['items']
 
     print("\nBeginning update of Chief Scout Badge Count for", section.name)
-    for scout in section.scouts:
-        if 'badges' in section.scouts[scout]:
+    for scout_id, scout_data in section.scouts.items():
+        if 'badges' in scout_data:
             activity_count = 0
             staged_count   = 0
-            badge_tally = [section.scouts[scout]['full_name']]
-            for badge in section.scouts[scout]['badges']:
+            badge_tally = [scout_data['full_name']]
+            for badge in scout_data['badges']:
                 if badge['completed'] != '0':
                     if badge['badge_group'] == '2':
                         activity_count += 1
@@ -111,17 +111,15 @@ def update_required_chief_scout_badge_count(section, badges_required):
         
             # Update Badge Flexi-Record for Activity Badges
             badge_tally.append(activity_count)
-            for record in badge_flexi_records:
-                if record['scoutid'] == scout:
-                    if record[badge_flexi['activity_badges']] != activity_count:
-                        update = section.update_flexi_record(badge_flexi['extraid'], str(scout['scout_id']), badge_flexi['activity_badges'], str(activity_count))
-
-            # Update Badge Flexi-Record for Staged Badges
             badge_tally.append(staged_count)
+
+            # Update Badge Flexi Record
             for record in badge_flexi_records:
-                if record['scoutid'] == scout:
+                if record['scoutid'] == scout_id:
+                    if record[badge_flexi['activity_badges']] != activity_count:
+                        update = section.update_flexi_record(badge_flexi['extraid'], scout_id, badge_flexi['activity_badges'], str(activity_count))
                     if record[badge_flexi['staged_badges']] != staged_count:
-                        update = section.update_flexi_record(badge_flexi['extraid'], str(scout['scout_id']), badge_flexi['staged_badges'], str(staged_count))
+                        update = section.update_flexi_record(badge_flexi['extraid'], scout_id, badge_flexi['staged_badges'], str(staged_count))
 
             # Update the Chief Scouts Minimum Badge Criteria (if met)
             if (staged_count + activity_count) >= badges_required:
@@ -132,15 +130,15 @@ def update_required_chief_scout_badge_count(section, badges_required):
                     'badge_id': section.chief_scout_badge['id'],
                     'badge_version': section.chief_scout_badge['version'],
                     'field': section.chief_scout_badge['badges_count_field'],
-                    'scoutid': scout,
+                    'scoutid': scout_id,
                     'section_id': section.id,
                     'term': section.current_term,
                     'value': '[YES]'
                 }
                 for record in chief_scout_badge_record:
-                    if record['scoutid'] == scout:
+                    if record['scoutid'] == scout_id:
                         if (data['field'] not in record) or (record[data['field']] != data['value']):
-                            print(section.scouts[scout],"has satisfied badge requirements, updating...")
+                            print(scout_data['full_name'],"has satisfied badge requirements, updating...")
                             update = section.update_badge_record(data)
             
             badge_count.append(badge_tally)
@@ -169,11 +167,11 @@ def tally_challenge_badge_completion(section):
     challenge_badges = section.get_badge_structure(BADGE_NAME['challenge'])['structure']
     challenge_flexi_record = section.get_flexi_record_by_name('Challenge Badges', create = True, type = 'badge')
 
-    for badge in section.badges['challenge']:
-        record = section.get_badge_record_by_identifier(section.badges['challenge'][badge]['identifier'])['items']
+    for badge_name, badge_data in section.badges['challenge'].items():
+        record = section.get_badge_record_by_identifier(badge_data['identifier'])['items']
         completion = [['Activity','Status']]
-        for row in challenge_badges[section.badges['challenge'][badge]['identifier']][1]['rows']:
-            column_name = f"({badge}) {row['name']}"
+        for row in challenge_badges[badge_data['identifier']][1]['rows']:
+            column_name = f"({badge_name}) {row['name']}"
             column_id = ''
             for column in challenge_flexi_record['config']:
                 if column['name'] == column_name:
@@ -196,6 +194,6 @@ def tally_challenge_badge_completion(section):
                         break
             completion.append([row['name'],f'{count} ({round((count / section.size) * 100 )}%)'])
 
-        print("\n{}\n{}\n".format(badge, '=' * len(badge)))
+        print("\n{}\n{}\n".format(badge_name, '=' * len(badge_name)))
         print(tabulate(completion, headers='firstrow'))
         
