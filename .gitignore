@@ -1,6 +1,11 @@
+# Temporary Environments
 **/.env
 **/__pycache__
 
+# Mac Development
 .DS_Store
 
+# Locally generated dump files
 **/*.xlsx
+**/*.csv
+**/*.json
