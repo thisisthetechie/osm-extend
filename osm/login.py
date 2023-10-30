@@ -1,5 +1,6 @@
 from requests_oauth2client import OAuth2Client
-from variables import TOKEN_URL, OSM_API_ID, OSM_API_SECRET
+
+from osm.config import TOKEN_URL, OSM_API_ID, OSM_API_SECRET
 
 oauth2client = OAuth2Client(
    token_endpoint=TOKEN_URL,

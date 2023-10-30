@@ -1,8 +1,9 @@
 ''' OSM Class. '''
-import requests, json, time
-from login import headers
+import requests, json, time, logging
 from datetime import datetime
-from variables import *
+
+from .config import *
+from . import headers
 
 class OSM:
     def __init__(self, section_name) -> None:
@@ -10,14 +11,14 @@ class OSM:
         for role in self.get_user_roles():
             if role['section'] == section_name:
                 self.id = role['sectionid']
-                self.group = role['groupname']
+                self.group = role['groupname'].replace(section_name.title(), '').strip()
         self.current_term = self.get_current_term()
         self.chief_scout_badge = self.get_chief_scout_badge()
         
         self.badges = dict()
         for badges in range(1,4):
             self.badges.update({BADGE_TYPE[badges]: {}})
-            badge_details = self.get_badge_structure(badges)['details']
+            badge_details = self.get_badge_structure_by_type(badges)['details']
 
             for badge in badge_details:
                 self.badges[BADGE_TYPE[badges]].update({
@@ -136,7 +137,7 @@ class OSM:
         flexi_records = self.get(url = url, scope = 'flexi')
         
         # Create object to pass out
-        badges_flexi_record = dict()
+        badges_flexi_record = {'knots': {}}
         for flexi_record in flexi_records['items']:
             if flexi_record['name'] == flexi_record_name:
                 badges_flexi_record.update({'extraid':flexi_record['extraid']})
@@ -149,7 +150,9 @@ class OSM:
                     elif col['name'] == "Staged Badges":
                         badges_flexi_record.update({'staged_badges':col['id']})
                     elif col['name'] == "Shoelace":
-                        badges_flexi_record.update({'shoelace':col['id']})
+                        badges_flexi_record['knots'].update({'shoelace':col['id']})
+                    elif col['name'] == "Reef Knot":
+                        badges_flexi_record['knots'].update({'reef':col['id']})
 
         # Create the Flexi Record if it doesn't exist
         if len(badges_flexi_record) == 0:
@@ -209,7 +212,7 @@ class OSM:
     def get_user_roles(self):
         return self.get(url = ROLES_URL, scope = 'programme')
 
-    def get_badge_structure(self, type_id):
+    def get_badge_structure_by_type(self, type_id):
         url = f'{OSM_BASE_URL}/ext/badges/records/?action=getBadgeStructureByType&a=1&section={self.name}&type_id={type_id}&term_id={self.current_term}&section_id={self.id}'
         return self.get(url = url, scope = 'badge')
 
@@ -242,3 +245,4 @@ class OSM:
 
     def update_badge_record(self, data):
         return self.post(url = BADGE_URL, scope = 'badge', data = data)
+
